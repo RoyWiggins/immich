@@ -1,0 +1,65 @@
+name: Build Feature APK
+
+on:
+  push:
+    branches:
+      - 'claude/add-photo-filtering-*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  build-android:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version-file: ./mobile/pubspec.yaml
+          cache: true
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-35 build-tools;35.0.0'
+
+      - name: Get Flutter packages
+        working-directory: ./mobile
+        run: flutter pub get
+
+      - name: Generate translations
+        working-directory: ./mobile
+        run: |
+          dart run easy_localization:generate -S ../i18n
+          dart run bin/generate_keys.dart
+
+      - name: Generate platform APIs (pigeon)
+        working-directory: ./mobile
+        run: make pigeon
+
+      - name: Build debug APK (arm64)
+        working-directory: ./mobile
+        run: flutter build apk --debug --split-per-abi --target-platform android-arm64
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: immich-photo-filter-debug-${{ github.sha }}
+          path: mobile/build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk
+          retention-days: 14
