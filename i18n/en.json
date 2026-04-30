@@ -2443,5 +2443,13 @@
   "your_wifi_name": "Your Wi-Fi name",
   "zero_to_clear_rating": "press 0 to clear asset rating",
   "zoom_image": "Zoom Image",
-  "zoom_to_bounds": "Zoom to bounds"
+  "zoom_to_bounds": "Zoom to bounds",
+  "photo_filter_title": "Filter Photos",
+  "photo_filter_apply": "Apply",
+  "photo_filter_clear_all": "Clear All",
+  "photo_filter_folders": "Device Folders",
+  "photo_filter_cameras": "Camera",
+  "photo_filter_no_folders": "No device folders found",
+  "photo_filter_no_cameras": "No camera data found",
+  "photo_filter_asset_count": "{count} items"
 }

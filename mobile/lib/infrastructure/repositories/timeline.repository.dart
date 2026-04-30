@@ -5,6 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:immich_mobile/constants/constants.dart';
 import 'package:immich_mobile/domain/models/album/album.model.dart';
 import 'package:immich_mobile/domain/models/asset/base_asset.model.dart';
+import 'package:immich_mobile/domain/models/photo_grid_filter.model.dart';
 import 'package:immich_mobile/domain/models/timeline.model.dart';
 import 'package:immich_mobile/domain/services/timeline.service.dart';
 import 'package:immich_mobile/infrastructure/entities/local_asset.entity.dart';
@@ -637,6 +638,295 @@ class DriftTimelineRepository extends DriftDatabaseRepository {
       final assetCount = row.read(assetCountExp)!;
       return TimeBucket(date: timeline, assetCount: assetCount);
     }).watch();
+  }
+
+  /// Returns distinct camera make+model pairs present in the remote EXIF table.
+  Future<List<CameraInfo>> getDistinctCameras() {
+    final makeCol = _db.remoteExifEntity.make;
+    final modelCol = _db.remoteExifEntity.model;
+
+    final query = _db.remoteExifEntity.selectOnly()
+      ..addColumns([makeCol, modelCol])
+      ..where(makeCol.isNotNull() | modelCol.isNotNull())
+      ..groupBy([makeCol, modelCol])
+      ..orderBy([OrderingTerm.asc(makeCol), OrderingTerm.asc(modelCol)]);
+
+    return query
+        .map((row) => CameraInfo(make: row.read(makeCol), model: row.read(modelCol)))
+        .get();
+  }
+
+  TimelineQuery mainWithFilter(List<String> userIds, GroupAssetsBy groupBy, PhotoGridFilter filter) {
+    if (!filter.hasFilter) return main(userIds, groupBy);
+    return (
+      bucketSource: () => _watchFilteredMainBucket(userIds, filter, groupBy: groupBy),
+      assetSource: (offset, count) => _getFilteredMainBucketAssets(userIds, filter, offset: offset, count: count),
+      origin: TimelineOrigin.main,
+    );
+  }
+
+  Stream<List<Bucket>> _watchFilteredMainBucket(
+    List<String> userIds,
+    PhotoGridFilter filter, {
+    GroupAssetsBy groupBy = GroupAssetsBy.day,
+  }) {
+    if (groupBy == GroupAssetsBy.none) {
+      throw UnsupportedError("GroupAssetsBy.none is not supported for watchFilteredMainBucket");
+    }
+    if (userIds.isEmpty) return Stream.value(const []);
+
+    final groupByIdx = groupBy == GroupAssetsBy.day ? 0 : 1;
+
+    // Build numbered SQL placeholders. ?1 = groupBy, ?2..?N+1 = userIds
+    final userPlaceholders = List.generate(userIds.length, (i) => '?${i + 2}').join(', ');
+    var nextIdx = userIds.length + 2;
+
+    String remoteJoin = '';
+    String remoteCameraWhere = '';
+    if (filter.hasCameraFilter) {
+      remoteJoin = 'LEFT JOIN remote_exif_entity ree ON ree.asset_id = rae.id';
+      final placeholders = List.generate(filter.cameraKeys.length, (i) => '?${nextIdx + i}').join(', ');
+      remoteCameraWhere =
+          "AND (COALESCE(ree.make, '') || '${PhotoGridFilter.cameraSeparator}' || COALESCE(ree.model, '')) IN ($placeholders)";
+      nextIdx += filter.cameraKeys.length;
+    }
+
+    String localFolderWhere;
+    if (filter.hasFolderFilter) {
+      final placeholders = List.generate(filter.folderIds.length, (i) => '?${nextIdx + i}').join(', ');
+      localFolderWhere =
+          'AND EXISTS (SELECT 1 FROM local_album_asset_entity laa2 WHERE laa2.asset_id = lae.id AND laa2.album_id IN ($placeholders))';
+    } else {
+      localFolderWhere = '''AND EXISTS (
+          SELECT 1 FROM local_album_asset_entity laa
+          INNER JOIN local_album_entity la ON laa.album_id = la.id
+          WHERE laa.asset_id = lae.id AND la.backup_selection = 0
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM local_album_asset_entity laa
+          INNER JOIN local_album_entity la ON laa.album_id = la.id
+          WHERE laa.asset_id = lae.id AND la.backup_selection = 2
+        )''';
+    }
+
+    final sql = '''
+      SELECT COUNT(*) AS asset_count, bucket_date FROM (
+        SELECT CASE
+          WHEN ?1 = 0 THEN COALESCE(STRFTIME('%Y-%m-%d', rae.local_date_time), STRFTIME('%Y-%m-%d', rae.created_at, 'localtime'))
+          WHEN ?1 = 1 THEN COALESCE(STRFTIME('%Y-%m', rae.local_date_time), STRFTIME('%Y-%m', rae.created_at, 'localtime'))
+        END AS bucket_date
+        FROM remote_asset_entity rae
+        LEFT JOIN stack_entity se ON rae.stack_id = se.id
+        $remoteJoin
+        WHERE rae.deleted_at IS NULL
+          AND rae.visibility = 0
+          AND rae.owner_id IN ($userPlaceholders)
+          AND (rae.stack_id IS NULL OR rae.id = se.primary_asset_id)
+          $remoteCameraWhere
+        UNION ALL
+        SELECT CASE
+          WHEN ?1 = 0 THEN STRFTIME('%Y-%m-%d', lae.created_at, 'localtime')
+          WHEN ?1 = 1 THEN STRFTIME('%Y-%m', lae.created_at, 'localtime')
+        END AS bucket_date
+        FROM local_asset_entity lae
+        WHERE NOT EXISTS (
+          SELECT 1 FROM remote_asset_entity rae
+          WHERE rae.checksum = lae.checksum AND rae.owner_id IN ($userPlaceholders)
+        )
+        $localFolderWhere
+      )
+      GROUP BY bucket_date
+      ORDER BY bucket_date DESC
+    ''';
+
+    final variables = [
+      Variable<int>(groupByIdx),
+      for (final uid in userIds) Variable<String>(uid),
+      if (filter.hasCameraFilter)
+        for (final key in filter.cameraKeys) Variable<String>(key),
+      if (filter.hasFolderFilter)
+        for (final fid in filter.folderIds) Variable<String>(fid),
+    ];
+
+    final readsFrom = {
+      _db.remoteAssetEntity,
+      _db.stackEntity,
+      _db.localAssetEntity,
+      _db.localAlbumAssetEntity,
+      _db.localAlbumEntity,
+      if (filter.hasCameraFilter) _db.remoteExifEntity,
+    };
+
+    return _db
+        .customSelect(sql, variables: variables, readsFrom: readsFrom)
+        .watch()
+        .map(
+          (rows) => rows.map((row) {
+            final bucketDate = row.read<String>('bucket_date');
+            final assetCount = row.read<int>('asset_count');
+            return TimeBucket(date: bucketDate.truncateDate(groupBy), assetCount: assetCount);
+          }).toList(),
+        );
+  }
+
+  Future<List<BaseAsset>> _getFilteredMainBucketAssets(
+    List<String> userIds,
+    PhotoGridFilter filter, {
+    required int offset,
+    required int count,
+  }) {
+    if (userIds.isEmpty) return Future.value(const []);
+    // ?1..?N = userIds
+    final userPlaceholders = List.generate(userIds.length, (i) => '?${i + 1}').join(', ');
+    var nextIdx = userIds.length + 1;
+
+    String remoteJoin = '';
+    String remoteCameraWhere = '';
+    if (filter.hasCameraFilter) {
+      remoteJoin = 'LEFT JOIN remote_exif_entity ree ON ree.asset_id = rae.id';
+      final placeholders = List.generate(filter.cameraKeys.length, (i) => '?${nextIdx + i}').join(', ');
+      remoteCameraWhere =
+          "AND (COALESCE(ree.make, '') || '${PhotoGridFilter.cameraSeparator}' || COALESCE(ree.model, '')) IN ($placeholders)";
+      nextIdx += filter.cameraKeys.length;
+    }
+
+    String localFolderWhere;
+    if (filter.hasFolderFilter) {
+      final placeholders = List.generate(filter.folderIds.length, (i) => '?${nextIdx + i}').join(', ');
+      localFolderWhere =
+          'AND EXISTS (SELECT 1 FROM local_album_asset_entity laa2 WHERE laa2.asset_id = lae.id AND laa2.album_id IN ($placeholders))';
+      nextIdx += filter.folderIds.length;
+    } else {
+      localFolderWhere = '''AND EXISTS (
+          SELECT 1 FROM local_album_asset_entity laa
+          INNER JOIN local_album_entity la ON laa.album_id = la.id
+          WHERE laa.asset_id = lae.id AND la.backup_selection = 0
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM local_album_asset_entity laa
+          INNER JOIN local_album_entity la ON laa.album_id = la.id
+          WHERE laa.asset_id = lae.id AND la.backup_selection = 2
+        )''';
+    }
+
+    final limitPlaceholder = '?$nextIdx';
+    final offsetPlaceholder = '?${nextIdx + 1}';
+
+    final sql = '''
+      SELECT
+        rae.id AS remote_id,
+        (SELECT lae2.id FROM local_asset_entity lae2 WHERE lae2.checksum = rae.checksum LIMIT 1) AS local_id,
+        rae.name, rae.type, rae.created_at, rae.updated_at, rae.width, rae.height,
+        rae.duration_ms, rae.is_favorite, rae.thumb_hash, rae.checksum, rae.owner_id,
+        rae.live_photo_video_id, 0 AS orientation, rae.stack_id,
+        NULL AS i_cloud_id, NULL AS latitude, NULL AS longitude, NULL AS adjustmentTime,
+        rae.is_edited, 0 AS playback_style
+      FROM remote_asset_entity rae
+      LEFT JOIN stack_entity se ON rae.stack_id = se.id
+      $remoteJoin
+      WHERE rae.deleted_at IS NULL
+        AND rae.visibility = 0
+        AND rae.owner_id IN ($userPlaceholders)
+        AND (rae.stack_id IS NULL OR rae.id = se.primary_asset_id)
+        $remoteCameraWhere
+      UNION ALL
+      SELECT
+        NULL AS remote_id, lae.id AS local_id, lae.name, lae.type, lae.created_at, lae.updated_at,
+        lae.width, lae.height, lae.duration_ms, lae.is_favorite, NULL AS thumb_hash, lae.checksum,
+        NULL AS owner_id, NULL AS live_photo_video_id, lae.orientation, NULL AS stack_id,
+        lae.i_cloud_id, lae.latitude, lae.longitude, lae.adjustment_time, 0 AS is_edited, lae.playback_style
+      FROM local_asset_entity lae
+      WHERE NOT EXISTS (
+        SELECT 1 FROM remote_asset_entity rae
+        WHERE rae.checksum = lae.checksum AND rae.owner_id IN ($userPlaceholders)
+      )
+      $localFolderWhere
+      ORDER BY created_at DESC
+      LIMIT $limitPlaceholder OFFSET $offsetPlaceholder
+    ''';
+
+    final variables = [
+      for (final uid in userIds) Variable<String>(uid),
+      if (filter.hasCameraFilter)
+        for (final key in filter.cameraKeys) Variable<String>(key),
+      if (filter.hasFolderFilter)
+        for (final fid in filter.folderIds) Variable<String>(fid),
+      Variable<int>(count),
+      Variable<int>(offset),
+    ];
+
+    return _db
+        .customSelect(sql, variables: variables)
+        .map(_mapMergedAssetRow)
+        .get();
+  }
+
+  BaseAsset _mapMergedAssetRow(QueryRow row) {
+    final remoteId = row.readNullable<String>('remote_id');
+    final localId = row.readNullable<String>('local_id');
+    final name = row.read<String>('name');
+    final typeIdx = row.read<int>('type');
+    final type = AssetType.values[typeIdx];
+    final createdAt = row.read<DateTime>('created_at');
+    final updatedAt = row.read<DateTime>('updated_at');
+    final width = row.readNullable<int>('width');
+    final height = row.readNullable<int>('height');
+    final durationMs = row.readNullable<int>('duration_ms');
+    final isFavorite = row.read<bool>('is_favorite');
+    final thumbHash = row.readNullable<String>('thumb_hash');
+    final checksum = row.readNullable<String>('checksum');
+    final ownerId = row.readNullable<String>('owner_id');
+    final livePhotoVideoId = row.readNullable<String>('live_photo_video_id');
+    final orientation = row.read<int>('orientation');
+    final stackId = row.readNullable<String>('stack_id');
+    final iCloudId = row.readNullable<String>('i_cloud_id');
+    final latitude = row.readNullable<double>('latitude');
+    final longitude = row.readNullable<double>('longitude');
+    final adjustmentTime = row.readNullable<DateTime>('adjustmentTime');
+    final isEdited = row.read<bool>('is_edited');
+    final playbackStyle = row.read<int>('playback_style');
+
+    if (remoteId != null && ownerId != null) {
+      return RemoteAsset(
+        id: remoteId,
+        localId: localId,
+        name: name,
+        ownerId: ownerId,
+        checksum: checksum,
+        type: type,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        thumbHash: thumbHash,
+        width: width,
+        height: height,
+        isFavorite: isFavorite,
+        durationMs: durationMs,
+        livePhotoVideoId: livePhotoVideoId,
+        stackId: stackId,
+        isEdited: isEdited,
+      );
+    }
+
+    return LocalAsset(
+      id: localId!,
+      remoteId: remoteId,
+      name: name,
+      checksum: checksum,
+      type: type,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      width: width,
+      height: height,
+      isFavorite: isFavorite,
+      durationMs: durationMs,
+      orientation: orientation,
+      playbackStyle: AssetPlaybackStyle.values[playbackStyle],
+      cloudId: iCloudId,
+      latitude: latitude,
+      longitude: longitude,
+      adjustmentTime: adjustmentTime,
+      isEdited: isEdited,
+    );
   }
 
   @pragma('vm:prefer-inline')
