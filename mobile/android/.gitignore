@@ -12,5 +12,8 @@ key.properties
 **/*.keystore
 **/*.jks
 
+# Kotlin build cache
+.kotlin/
+
 # Fastlane
 fastlane/report.xml
