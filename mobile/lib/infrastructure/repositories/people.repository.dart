@@ -63,14 +63,22 @@ class DriftPeopleRepository extends DriftDatabaseRepository {
 
   Future<int> updateName(String personId, String name) {
     final query = _db.update(_db.personEntity)..where((row) => row.id.equals(personId));
-
     return query.write(PersonEntityCompanion(name: Value(name), updatedAt: Value(DateTime.now())));
   }
 
   Future<int> updateBirthday(String personId, DateTime birthday) {
     final query = _db.update(_db.personEntity)..where((row) => row.id.equals(personId));
-
     return query.write(PersonEntityCompanion(birthDate: Value(birthday), updatedAt: Value(DateTime.now())));
+  }
+
+  Future<int> updateFavorite(String personId, bool isFavorite) {
+    final query = _db.update(_db.personEntity)..where((row) => row.id.equals(personId));
+    return query.write(PersonEntityCompanion(isFavorite: Value(isFavorite), updatedAt: Value(DateTime.now())));
+  }
+
+  Future<int> updateHidden(String personId, bool isHidden) {
+    final query = _db.update(_db.personEntity)..where((row) => row.id.equals(personId));
+    return query.write(PersonEntityCompanion(isHidden: Value(isHidden), updatedAt: Value(DateTime.now())));
   }
 }
 

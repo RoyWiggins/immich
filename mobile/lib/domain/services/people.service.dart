@@ -31,4 +31,14 @@ class DriftPeopleService {
     await _personApiRepository.update(personId, birthday: birthday);
     return _repository.updateBirthday(personId, birthday);
   }
+
+  Future<void> updateFavorite(String personId, bool isFavorite) async {
+    await _personApiRepository.update(personId, isFavorite: isFavorite);
+    await _repository.updateFavorite(personId, isFavorite);
+  }
+
+  Future<void> updateHidden(String personId) async {
+    await _personApiRepository.update(personId, isHidden: true);
+    await _repository.updateHidden(personId, true);
+  }
 }

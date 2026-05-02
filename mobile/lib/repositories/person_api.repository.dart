@@ -16,9 +16,15 @@ class PersonApiRepository extends ApiRepository {
     return dto.people.map(_toPerson).toList();
   }
 
-  Future<PersonDto> update(String id, {String? name, DateTime? birthday}) async {
+  Future<PersonDto> update(
+    String id, {
+    String? name,
+    DateTime? birthday,
+    bool? isFavorite,
+    bool? isHidden,
+  }) async {
     final birthdayUtc = birthday == null ? null : DateTime.utc(birthday.year, birthday.month, birthday.day);
-    final dto = PersonUpdateDto(name: name, birthDate: birthdayUtc);
+    final dto = PersonUpdateDto(name: name, birthDate: birthdayUtc, isFavorite: isFavorite, isHidden: isHidden);
     final response = await checkNull(_api.updatePerson(id, dto));
     return _toPerson(response);
   }
