@@ -34,9 +34,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-            ~/.android/sdk
             mobile/android/.gradle
-            mobile/.dart_tool
           key: build-feature-apk-${{ runner.os }}-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/pubspec.lock') }}
           restore-keys: |
             build-feature-apk-${{ runner.os }}-
