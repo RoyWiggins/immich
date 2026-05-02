@@ -18,8 +18,8 @@ class DriftPeopleService {
     return _repository.getAssetPeople(assetId);
   }
 
-  Future<List<DriftPerson>> getAllPeople() {
-    return _repository.getAllPeople();
+  Future<List<DriftPerson>> getAllPeople({bool includeHidden = false}) {
+    return _repository.getAllPeople(includeHidden: includeHidden);
   }
 
   Future<int> updateName(String personId, String name) async {
@@ -37,8 +37,8 @@ class DriftPeopleService {
     await _repository.updateFavorite(personId, isFavorite);
   }
 
-  Future<void> updateHidden(String personId) async {
-    await _personApiRepository.update(personId, isHidden: true);
-    await _repository.updateHidden(personId, true);
+  Future<void> updateHidden(String personId, {bool hidden = true}) async {
+    await _personApiRepository.update(personId, isHidden: hidden);
+    await _repository.updateHidden(personId, hidden);
   }
 }

@@ -32,7 +32,7 @@ class DriftPeopleRepository extends DriftDatabaseRepository {
     }).get();
   }
 
-  Future<List<DriftPerson>> getAllPeople() async {
+  Future<List<DriftPerson>> getAllPeople({bool includeHidden = false}) async {
     final people = _db.personEntity;
     final faces = _db.assetFaceEntity;
     final assets = _db.remoteAssetEntity;
@@ -43,7 +43,7 @@ class DriftPeopleRepository extends DriftDatabaseRepository {
             innerJoin(assets, assets.id.equalsExp(faces.assetId)),
           ])
           ..where(
-            people.isHidden.equals(false) &
+            (includeHidden ? const Constant(true) : people.isHidden.equals(false)) &
                 assets.deletedAt.isNull() &
                 assets.visibility.equalsValue(AssetVisibility.timeline) &
                 faces.isVisible.equals(true) &

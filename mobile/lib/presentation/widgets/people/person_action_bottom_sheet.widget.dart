@@ -96,13 +96,22 @@ class _PersonActionBottomSheet extends ConsumerWidget {
               () => ref.read(driftPeopleServiceProvider).updateFavorite(person.id, !person.isFavorite),
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.visibility_off_outlined),
-            title: Text('person_hide'.tr()),
-            onTap: () => run(
-              () => ref.read(driftPeopleServiceProvider).updateHidden(person.id),
+          if (person.isHidden)
+            ListTile(
+              leading: const Icon(Icons.visibility_outlined),
+              title: Text('person_unhide'.tr()),
+              onTap: () => run(
+                () => ref.read(driftPeopleServiceProvider).updateHidden(person.id, hidden: false),
+              ),
+            )
+          else
+            ListTile(
+              leading: const Icon(Icons.visibility_off_outlined),
+              title: Text('person_hide'.tr()),
+              onTap: () => run(
+                () => ref.read(driftPeopleServiceProvider).updateHidden(person.id),
+              ),
             ),
-          ),
           const SizedBox(height: 8),
         ],
       ),

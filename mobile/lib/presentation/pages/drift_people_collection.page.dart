@@ -24,6 +24,7 @@ class _DriftPeopleCollectionPageState extends ConsumerState<DriftPeopleCollectio
   final FocusNode _formFocus = FocusNode();
   String? _search;
   bool _unnamedExpanded = false;
+  bool _hiddenExpanded = false;
 
   @override
   void dispose() {
@@ -70,9 +71,11 @@ class _DriftPeopleCollectionPageState extends ConsumerState<DriftPeopleCollectio
               return _FlatGrid(people: filtered, crossAxisCount: crossAxisCount);
             }
 
-            final favorites = people.where((p) => p.isFavorite).toList();
-            final named = people.where((p) => !p.isFavorite && p.name.isNotEmpty).toList();
-            final unnamed = people.where((p) => p.name.isEmpty).toList();
+            final visible = people.where((p) => !p.isHidden).toList();
+            final hidden = people.where((p) => p.isHidden).toList();
+            final favorites = visible.where((p) => p.isFavorite).toList();
+            final named = visible.where((p) => !p.isFavorite && p.name.isNotEmpty).toList();
+            final unnamed = visible.where((p) => p.name.isEmpty).toList();
 
             return CustomScrollView(
               slivers: [
@@ -85,12 +88,20 @@ class _DriftPeopleCollectionPageState extends ConsumerState<DriftPeopleCollectio
                   _PeopleGrid(people: named, crossAxisCount: crossAxisCount),
                 ],
                 if (unnamed.isNotEmpty) ...[
-                  _UnnamedHeader(
-                    count: unnamed.length,
+                  _CollapsibleHeader(
+                    title: 'person_section_unnamed'.tr(namedArgs: {'count': unnamed.length.toString()}),
                     expanded: _unnamedExpanded,
                     onTap: () => setState(() => _unnamedExpanded = !_unnamedExpanded),
                   ),
                   if (_unnamedExpanded) _PeopleGrid(people: unnamed, crossAxisCount: crossAxisCount),
+                ],
+                if (hidden.isNotEmpty) ...[
+                  _CollapsibleHeader(
+                    title: 'person_section_hidden'.tr(namedArgs: {'count': hidden.length.toString()}),
+                    expanded: _hiddenExpanded,
+                    onTap: () => setState(() => _hiddenExpanded = !_hiddenExpanded),
+                  ),
+                  if (_hiddenExpanded) _PeopleGrid(people: hidden, crossAxisCount: crossAxisCount),
                 ],
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
               ],
@@ -152,12 +163,12 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _UnnamedHeader extends StatelessWidget {
-  final int count;
+class _CollapsibleHeader extends StatelessWidget {
+  final String title;
   final bool expanded;
   final VoidCallback onTap;
 
-  const _UnnamedHeader({required this.count, required this.expanded, required this.onTap});
+  const _CollapsibleHeader({required this.title, required this.expanded, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +180,7 @@ class _UnnamedHeader extends StatelessWidget {
           child: Row(
             children: [
               Text(
-                'person_section_unnamed'.tr(args: [count.toString()]),
+                title,
                 style: context.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: context.colorScheme.onSurfaceVariant,
@@ -228,31 +239,13 @@ class _PersonCell extends ConsumerWidget {
         key: ValueKey(person.id),
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Stack(
-            alignment: Alignment.topRight,
-            children: [
-              Material(
-                shape: const CircleBorder(side: BorderSide.none),
-                elevation: 3,
-                child: CircleAvatar(
-                  maxRadius: radius,
-                  backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
-                ),
-              ),
-              if (person.isFavorite)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: context.colorScheme.surface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.star_rounded, size: 16, color: context.colorScheme.primary),
-                  ),
-                ),
-            ],
+          Material(
+            shape: const CircleBorder(side: BorderSide.none),
+            elevation: 3,
+            child: CircleAvatar(
+              maxRadius: radius,
+              backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+            ),
           ),
           const SizedBox(height: 8),
           GestureDetector(
