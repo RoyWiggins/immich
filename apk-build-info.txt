@@ -1,0 +1,15 @@
+APK Build: immich-photo-filtering-2.7.5
+Built: 2026-05-02
+Branch: claude/add-photo-filtering-6HgfB
+Flutter: 3.41.7
+Android SDK: 36
+Build type: release
+
+Output: mobile/build/app/outputs/flutter-apk/app-release.apk
+Size: 164.83 MB
+SHA-256: 1bc2df89cc1ee17385d156b8ff9de7f2e60675c28a6fccfd3c1e2fa5bf0c9f18
+
+The APK is not committed to git (exceeds GitHub's 100 MB file size limit).
+Rebuild with:
+  export ALIAS=immich ANDROID_KEY_PASSWORD=android ANDROID_STORE_PASSWORD=android
+  cd mobile && flutter build apk --release
