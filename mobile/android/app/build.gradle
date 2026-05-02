@@ -44,16 +44,22 @@ android {
     versionName flutter.versionName
   }
 
-  signingConfigs {
-    release {
-      def keyAliasVal = System.getenv("ALIAS")
-      def keyPasswordVal = System.getenv("ANDROID_KEY_PASSWORD")
-      def storePasswordVal = System.getenv("ANDROID_STORE_PASSWORD")
+  def hasKeystoreEnv = System.getenv("ALIAS") != null
+  def hasKeystoreFile = file("../key.jks").exists() || keystorePropertiesFile.exists()
+  def hasKeystore = hasKeystoreEnv || hasKeystoreFile
 
-      keyAlias keyAliasVal ?: keystoreProperties['keyAlias']
-      keyPassword keyPasswordVal ?: keystoreProperties['keyPassword']
-      storeFile file("../key.jks").exists() ? file("../key.jks") : file(keystoreProperties['storeFile'] ?: '../key.jks')
-      storePassword storePasswordVal ?: keystoreProperties['storePassword']
+  signingConfigs {
+    if (hasKeystore) {
+      release {
+        def keyAliasVal = System.getenv("ALIAS")
+        def keyPasswordVal = System.getenv("ANDROID_KEY_PASSWORD")
+        def storePasswordVal = System.getenv("ANDROID_STORE_PASSWORD")
+
+        keyAlias keyAliasVal ?: keystoreProperties['keyAlias']
+        keyPassword keyPasswordVal ?: keystoreProperties['keyPassword']
+        storeFile file("../key.jks").exists() ? file("../key.jks") : file(keystoreProperties['storeFile'] ?: '../key.jks')
+        storePassword storePasswordVal ?: keystoreProperties['storePassword']
+      }
     }
   }
 
@@ -64,7 +70,8 @@ android {
     }
 
     release {
-      signingConfig signingConfigs.release
+      // Fall back to debug signing when no keystore is configured (e.g. feature branch local dev)
+      signingConfig hasKeystore ? signingConfigs.release : signingConfigs.debug
       proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
     }
   }
