@@ -691,9 +691,15 @@ class DriftTimelineRepository extends DriftDatabaseRepository {
       nextIdx += filter.cameraKeys.length;
     }
 
+    String remoteFolderWhere = '';
     String localFolderWhere;
     if (filter.hasFolderFilter) {
       final placeholders = List.generate(filter.folderIds.length, (i) => '?${nextIdx + i}').join(', ');
+      remoteFolderWhere = '''AND EXISTS (
+          SELECT 1 FROM local_asset_entity lae2
+          INNER JOIN local_album_asset_entity laa2 ON laa2.asset_id = lae2.id
+          WHERE lae2.checksum = rae.checksum AND laa2.album_id IN ($placeholders)
+        )''';
       localFolderWhere =
           'AND EXISTS (SELECT 1 FROM local_album_asset_entity laa2 WHERE laa2.asset_id = lae.id AND laa2.album_id IN ($placeholders))';
     } else {
@@ -723,6 +729,7 @@ class DriftTimelineRepository extends DriftDatabaseRepository {
           AND rae.owner_id IN ($userPlaceholders)
           AND (rae.stack_id IS NULL OR rae.id = se.primary_asset_id)
           $remoteCameraWhere
+          $remoteFolderWhere
         UNION ALL
         SELECT CASE
           WHEN ?1 = 0 THEN STRFTIME('%Y-%m-%d', lae.created_at, 'localtime')
@@ -790,9 +797,15 @@ class DriftTimelineRepository extends DriftDatabaseRepository {
       nextIdx += filter.cameraKeys.length;
     }
 
+    String remoteFolderWhere = '';
     String localFolderWhere;
     if (filter.hasFolderFilter) {
       final placeholders = List.generate(filter.folderIds.length, (i) => '?${nextIdx + i}').join(', ');
+      remoteFolderWhere = '''AND EXISTS (
+          SELECT 1 FROM local_asset_entity lae2
+          INNER JOIN local_album_asset_entity laa2 ON laa2.asset_id = lae2.id
+          WHERE lae2.checksum = rae.checksum AND laa2.album_id IN ($placeholders)
+        )''';
       localFolderWhere =
           'AND EXISTS (SELECT 1 FROM local_album_asset_entity laa2 WHERE laa2.asset_id = lae.id AND laa2.album_id IN ($placeholders))';
       nextIdx += filter.folderIds.length;
@@ -829,6 +842,7 @@ class DriftTimelineRepository extends DriftDatabaseRepository {
         AND rae.owner_id IN ($userPlaceholders)
         AND (rae.stack_id IS NULL OR rae.id = se.primary_asset_id)
         $remoteCameraWhere
+        $remoteFolderWhere
       UNION ALL
       SELECT
         NULL AS remote_id, lae.id AS local_id, lae.name, lae.type, lae.created_at, lae.updated_at,
