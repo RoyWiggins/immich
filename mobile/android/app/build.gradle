@@ -70,6 +70,8 @@ android {
     }
 
     release {
+      applicationIdSuffix '.dev'
+      versionNameSuffix '-dev'
       // Fall back to debug signing when no keystore is configured (e.g. feature branch local dev)
       signingConfig hasKeystore ? signingConfigs.release : signingConfigs.debug
       proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
