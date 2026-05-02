@@ -748,7 +748,7 @@ class DriftTimelineRepository extends DriftDatabaseRepository {
         for (final fid in filter.folderIds) Variable<String>(fid),
     ];
 
-    final readsFrom = {
+    final readsFrom = <ResultSetImplementation<dynamic, dynamic>>{
       _db.remoteAssetEntity,
       _db.stackEntity,
       _db.localAssetEntity,
