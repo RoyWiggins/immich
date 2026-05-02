@@ -15,7 +15,7 @@ permissions: {}
 
 jobs:
   build-android:
-    name: Build debug APK
+    name: Build debug + release APK
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -70,13 +70,37 @@ jobs:
         working-directory: ./mobile
         run: dart run build_runner build --delete-conflicting-outputs
 
+      - name: Generate self-signed keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore mobile/android/key.jks \
+            -alias immich \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Immich CI, OU=CI, O=Immich, L=Unknown, S=Unknown, C=US"
+
+      - name: Build release APK (arm64)
+        working-directory: ./mobile
+        env:
+          ALIAS: immich
+          ANDROID_KEY_PASSWORD: android
+          ANDROID_STORE_PASSWORD: android
+        run: flutter build apk --release --split-per-abi --target-platform android-arm64
+
+      - name: Upload release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: immich-release-arm64-${{ github.sha }}
+          path: mobile/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          retention-days: 14
+
       - name: Build debug APK (arm64)
         working-directory: ./mobile
         run: flutter build apk --debug --split-per-abi --target-platform android-arm64
 
-      - name: Upload APK artifact
+      - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: immich-photo-filter-debug-${{ github.sha }}
+          name: immich-debug-arm64-${{ github.sha }}
           path: mobile/build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk
           retention-days: 14
