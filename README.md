@@ -10,6 +10,7 @@
 > - **Favorites toggle in "Add to" menu** — The asset viewer's "Add to" dropdown includes a Favorites option (with heart icon) below Album, which works like the standalone heart button.
 > - **Albums sections view mode** — The Albums tab has a third view mode (cycling List → Grid → Sections) that lists albums as compact rows organized by sort order, like a table of contents.
 > - **Local folder and path in photo details** — The Details sheet for a photo shows the device folder name and full file path when the photo is stored locally, including for cloud photos that also have a local copy.
+> - **Photos timeline filtering** — A filter button in the main Photos view lets you narrow the timeline to specific device folders (e.g. "Camera", "Screenshots") and/or specific camera makes and models. Multiple selections are allowed in each category and the filter persists across sessions. An indicator shows when a filter is active.
 > - **CI builds on all `claude/` branches** — The APK build workflow triggers on any `claude/**` branch.
 
 <p align="center"> 
