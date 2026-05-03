@@ -140,6 +140,10 @@ class RemoteAlbumService {
     return _repository.getAssets(albumId);
   }
 
+  Future<List<RemoteAsset>> getRecentAssets(String albumId, {int limit = 8}) {
+    return _repository.getRecentAssets(albumId, limit: limit);
+  }
+
   Future<int> addAssets({required String albumId, required List<String> assetIds}) async {
     final album = await _albumApiRepository.addAssets(albumId, assetIds);
 

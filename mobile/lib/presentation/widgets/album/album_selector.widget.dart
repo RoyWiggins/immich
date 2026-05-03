@@ -775,23 +775,20 @@ class _AlbumSections extends ConsumerWidget {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 64),
+      padding: const EdgeInsets.only(bottom: 64),
       sliver: SliverList.builder(
         itemCount: albums.length,
         itemBuilder: (context, index) {
           final album = albums[index];
           final isOwner = album.ownerId == userId;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: _AlbumSectionCard(album: album, isOwner: isOwner, onAlbumSelected: onAlbumSelected),
-          );
+          return _AlbumSectionCard(album: album, isOwner: isOwner, onAlbumSelected: onAlbumSelected);
         },
       ),
     );
   }
 }
 
-class _AlbumSectionCard extends StatelessWidget {
+class _AlbumSectionCard extends ConsumerWidget {
   const _AlbumSectionCard({required this.album, required this.isOwner, required this.onAlbumSelected});
 
   final RemoteAlbum album;
@@ -799,47 +796,86 @@ class _AlbumSectionCard extends StatelessWidget {
   final AlbumSelectorCallback onAlbumSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recentAssets = ref.watch(albumRecentAssetsProvider(album.id));
+
     return InkWell(
       onTap: () => onAlbumSelected(album),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    album.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header row
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'items_count'.t(context: context, args: {'count': album.assetCount}),
-                        style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurfaceVariant),
+                        album.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                       ),
-                      if (!isOwner) ...[
-                        const SizedBox(width: 8),
-                        Icon(Icons.group_outlined, size: 14, color: context.colorScheme.onSurfaceVariant),
-                        const SizedBox(width: 2),
-                        Text(
-                          album.ownerName,
-                          style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurfaceVariant),
-                        ),
-                      ],
+                      Row(
+                        children: [
+                          Text(
+                            'items_count'.t(context: context, args: {'count': album.assetCount}),
+                            style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurfaceVariant),
+                          ),
+                          if (!isOwner) ...[
+                            const SizedBox(width: 6),
+                            Icon(Icons.group_outlined, size: 13, color: context.colorScheme.onSurfaceVariant),
+                            const SizedBox(width: 2),
+                            Text(
+                              album.ownerName,
+                              style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                Icon(Icons.chevron_right, color: context.colorScheme.onSurfaceVariant),
+              ],
             ),
-            Icon(Icons.chevron_right, color: context.colorScheme.onSurfaceVariant),
-          ],
-        ),
+          ),
+          // Thumbnail strip
+          recentAssets.when(
+            loading: () => const SizedBox(height: 80),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (assets) {
+              if (assets.isEmpty) return const SizedBox.shrink();
+              return SizedBox(
+                height: 80,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: assets.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 2),
+                  itemBuilder: (context, index) => ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(index == 0 ? 6 : 0),
+                      bottomLeft: Radius.circular(index == 0 ? 6 : 0),
+                      topRight: Radius.circular(index == assets.length - 1 ? 6 : 0),
+                      bottomRight: Radius.circular(index == assets.length - 1 ? 6 : 0),
+                    ),
+                    child: SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: Thumbnail.fromAsset(asset: assets[index], fit: BoxFit.cover),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          const Divider(height: 1),
+        ],
       ),
     );
   }

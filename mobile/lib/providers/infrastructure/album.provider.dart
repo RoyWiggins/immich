@@ -45,3 +45,7 @@ final remoteAlbumProvider = NotifierProvider<RemoteAlbumNotifier, RemoteAlbumSta
 final albumsContainingAssetProvider = FutureProvider.family<List<RemoteAlbum>, String>(
   (ref, assetId) => ref.watch(remoteAlbumServiceProvider).getAlbumsContainingAsset(assetId),
 );
+
+final albumRecentAssetsProvider = FutureProvider.autoDispose.family<List<RemoteAsset>, String>(
+  (ref, albumId) => ref.watch(remoteAlbumServiceProvider).getRecentAssets(albumId, limit: 8),
+);
