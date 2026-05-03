@@ -127,9 +127,17 @@ class _PeopleSection extends ConsumerWidget {
                         width: 64,
                         child: Column(
                           children: [
-                            CircleAvatar(
-                              radius: 32,
-                              backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                            Material(
+                              shape: ContinuousRectangleBorder(
+                                borderRadius: BorderRadius.circular(64 * 0.35),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Image(
+                                image: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
