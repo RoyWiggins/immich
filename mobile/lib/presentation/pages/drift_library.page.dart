@@ -267,17 +267,19 @@ class _OnDeviceSection extends ConsumerWidget {
                 height: 90,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.zero,
                   itemCount: albums.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final album = albums[index];
-                    return GestureDetector(
-                      onTap: () => context.pushRoute(LocalTimelineRoute(album: album)),
-                      child: ClipRRect(
+                    return SizedBox(
+                      width: 90,
+                      height: 90,
+                      child: InkWell(
                         borderRadius: const BorderRadius.all(Radius.circular(12)),
-                        child: SizedBox(
-                          width: 90,
-                          height: 90,
+                        onTap: () => context.pushRoute(LocalTimelineRoute(album: album)),
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.all(Radius.circular(12)),
                           child: LocalAlbumThumbnail(albumId: album.id),
                         ),
                       ),
@@ -324,22 +326,24 @@ class _FavoritesSection extends ConsumerWidget {
                 height: 90,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.zero,
                   itemCount: assets.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final asset = assets[index];
-                    return GestureDetector(
-                      onTap: () {
-                        AssetViewer.setAsset(ref, asset);
-                        context.pushRoute(
-                          AssetViewerRoute(initialIndex: index, timelineService: timelineService),
-                        );
-                      },
-                      child: ClipRRect(
+                    return SizedBox(
+                      width: 90,
+                      height: 90,
+                      child: InkWell(
                         borderRadius: const BorderRadius.all(Radius.circular(12)),
-                        child: SizedBox(
-                          width: 90,
-                          height: 90,
+                        onTap: () {
+                          AssetViewer.setAsset(ref, asset);
+                          context.pushRoute(
+                            AssetViewerRoute(initialIndex: index, timelineService: timelineService),
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.all(Radius.circular(12)),
                           child: Thumbnail.fromAsset(asset: asset, fit: BoxFit.cover),
                         ),
                       ),
