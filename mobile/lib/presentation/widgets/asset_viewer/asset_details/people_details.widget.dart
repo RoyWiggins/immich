@@ -114,14 +114,19 @@ class _Avatar extends StatelessWidget {
             GestureDetector(
               onTap: onTap,
               child: SizedBox(
+                width: imageSize,
                 height: imageSize,
                 child: Material(
-                  shape: CircleBorder(side: BorderSide(color: context.primaryColor.withAlpha(50), width: 1.0)),
+                  shape: ContinuousRectangleBorder(
+                    borderRadius: BorderRadius.circular(imageSize * 0.35),
+                    side: BorderSide(color: context.primaryColor.withAlpha(50), width: 1.0),
+                  ),
                   shadowColor: context.colorScheme.shadow,
                   elevation: 3,
-                  child: CircleAvatar(
-                    maxRadius: imageSize / 2,
-                    backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image(
+                    image: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),

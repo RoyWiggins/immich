@@ -69,14 +69,18 @@ class PeoplePicker extends HookConsumerWidget {
                         ),
                       ),
                       leading: SizedBox(
+                        width: imageSize,
                         height: imageSize,
                         child: Material(
-                          shape: const CircleBorder(side: BorderSide.none),
+                          shape: ContinuousRectangleBorder(
+                            borderRadius: BorderRadius.circular(imageSize * 0.35),
+                          ),
                           elevation: 3,
-                          child: CircleAvatar(
+                          clipBehavior: Clip.antiAlias,
+                          child: Image(
                             key: ValueKey(person.id),
-                            maxRadius: imageSize / 2,
-                            backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                            image: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),

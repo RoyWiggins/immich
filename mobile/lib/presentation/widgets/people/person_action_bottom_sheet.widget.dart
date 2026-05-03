@@ -63,9 +63,19 @@ class _PersonActionBottomSheet extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: Material(
+                    shape: ContinuousRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image(
+                      image: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

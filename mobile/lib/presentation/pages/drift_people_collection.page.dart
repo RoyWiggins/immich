@@ -240,11 +240,16 @@ class _PersonCell extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Material(
-            shape: const CircleBorder(side: BorderSide.none),
+            shape: ContinuousRectangleBorder(
+              borderRadius: BorderRadius.circular(radius * 0.7),
+            ),
             elevation: 3,
-            child: CircleAvatar(
-              maxRadius: radius,
-              backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+            clipBehavior: Clip.antiAlias,
+            child: Image(
+              image: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+              width: radius * 2,
+              height: radius * 2,
+              fit: BoxFit.cover,
             ),
           ),
           const SizedBox(height: 8),

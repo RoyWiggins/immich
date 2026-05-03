@@ -179,7 +179,21 @@ class _PeopleCollectionCard extends ConsumerWidget {
                       mainAxisSpacing: 8,
                       physics: const NeverScrollableScrollPhysics(),
                       children: people.take(4).map((person) {
-                        return CircleAvatar(backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)));
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            final size = constraints.maxWidth;
+                            return Material(
+                              shape: ContinuousRectangleBorder(
+                                borderRadius: BorderRadius.circular(size * 0.35),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Image(
+                                image: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                                fit: BoxFit.cover,
+                              ),
+                            );
+                          },
+                        );
                       }).toList(),
                     );
                   },

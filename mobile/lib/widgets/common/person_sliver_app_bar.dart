@@ -226,11 +226,15 @@ class _ExpandedBackgroundState extends ConsumerState<_ExpandedBackground> with S
                   height: 84,
                   width: 84,
                   child: Material(
-                    shape: const CircleBorder(side: BorderSide(color: Colors.grey, width: 1.0)),
+                    shape: ContinuousRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      side: const BorderSide(color: Colors.grey, width: 1.0),
+                    ),
                     elevation: 3,
-                    child: CircleAvatar(
-                      maxRadius: 84 / 2,
-                      backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(widget.person.id)),
+                    clipBehavior: Clip.antiAlias,
+                    child: Image(
+                      image: RemoteImageProvider(url: getFaceThumbnailUrl(widget.person.id)),
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
