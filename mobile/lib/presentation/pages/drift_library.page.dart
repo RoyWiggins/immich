@@ -142,6 +142,18 @@ class _PeopleSection extends ConsumerWidget {
                                 width: 64,
                                 height: 64,
                                 fit: BoxFit.cover,
+                                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                                  if (wasSynchronouslyLoaded || frame != null) return child;
+                                  return SizedBox(
+                                    width: 64,
+                                    height: 64,
+                                    child: Icon(
+                                      Icons.person_rounded,
+                                      size: 36,
+                                      color: context.colorScheme.onSurfaceVariant,
+                                    ),
+                                  );
+                                },
                                 errorBuilder: (_, __, ___) => SizedBox(
                                   width: 64,
                                   height: 64,
