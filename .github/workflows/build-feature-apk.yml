@@ -3,9 +3,7 @@ name: Build Feature APK
 on:
   push:
     branches:
-      - 'claude/add-photo-filtering-*'
-      - 'claude/install-flutter-build-apk-*'
-      - 'claude/update-library-view-layout-*'
+      - 'claude/**'
   workflow_dispatch:
 
 concurrency:
