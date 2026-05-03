@@ -5,6 +5,7 @@ on:
     branches:
       - 'claude/add-photo-filtering-*'
       - 'claude/install-flutter-build-apk-*'
+      - 'claude/update-library-view-layout-*'
   workflow_dispatch:
 
 concurrency:
