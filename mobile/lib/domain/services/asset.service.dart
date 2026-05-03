@@ -59,6 +59,10 @@ class AssetService {
     return _remoteAssetRepository.getPlaces(userId);
   }
 
+  Future<List<RemoteAsset>> getRecentFavorites(String userId, {int limit = 8}) {
+    return _remoteAssetRepository.getRecentFavorites(userId, limit: limit);
+  }
+
   Future<(int local, int remote)> getAssetCounts() async {
     return (await _localAssetRepository.getCount(), await _remoteAssetRepository.getCount());
   }

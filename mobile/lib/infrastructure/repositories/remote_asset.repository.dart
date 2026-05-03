@@ -17,6 +17,21 @@ class RemoteAssetRepository extends DriftDatabaseRepository {
 
   const RemoteAssetRepository(this._db) : super(_db);
 
+  Future<List<RemoteAsset>> getRecentFavorites(String userId, {int limit = 8}) {
+    final query = _db.remoteAssetEntity.select()
+      ..where(
+        (row) =>
+            _db.remoteAssetEntity.ownerId.equals(userId) &
+            _db.remoteAssetEntity.deletedAt.isNull() &
+            _db.remoteAssetEntity.isFavorite.equals(true) &
+            _db.remoteAssetEntity.visibility.equalsValue(AssetVisibility.timeline),
+      )
+      ..orderBy([(row) => OrderingTerm.desc(row.createdAt)])
+      ..limit(limit);
+
+    return query.map((row) => row.toDto()).get();
+  }
+
   /// For testing purposes
   Future<List<RemoteAsset>> getSome(String userId) {
     final query = _db.remoteAssetEntity.select()

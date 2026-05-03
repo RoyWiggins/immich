@@ -1,4 +1,5 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:immich_mobile/domain/models/asset/base_asset.model.dart';
 import 'package:immich_mobile/domain/services/asset.service.dart';
 import 'package:immich_mobile/infrastructure/repositories/local_asset.repository.dart';
 import 'package:immich_mobile/infrastructure/repositories/remote_asset.repository.dart';
@@ -34,4 +35,15 @@ final placesProvider = FutureProvider<List<(String, String)>>((ref) {
   }
 
   return assetService.getPlaces(auth.id);
+});
+
+final recentFavoritesProvider = FutureProvider<List<RemoteAsset>>((ref) {
+  final assetService = ref.watch(assetServiceProvider);
+  final auth = ref.watch(currentUserProvider);
+
+  if (auth == null) {
+    return Future.value(const []);
+  }
+
+  return assetService.getRecentFavorites(auth.id);
 });
