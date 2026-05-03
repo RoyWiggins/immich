@@ -7,6 +7,7 @@
 > - **Squircle people avatars** — Face thumbnails use a continuous rounded rectangle (squircle) shape, matching the style used elsewhere in the app.
 > - **Places sorted by popularity** — The Places card orders locations by photo count (most photos first) rather than alphabetically.
 > - **Tappable library items** — Each person, place, local album, and favorite photo in the Library cards is tappable and navigates to the relevant detail view.
+> - **People view reorganised by section** — The People page splits faces into four collapsible sections: Favorites (starred people, shown first), Named, Unnamed (collapsed by default), and Hidden (collapsed by default). Long-pressing any face avatar opens an action sheet to rename, favorite/unfavorite, or hide/unhide that person.
 > - **Favorites toggle in "Add to" menu** — The asset viewer's "Add to" dropdown includes a Favorites option (with heart icon) below Album, which works like the standalone heart button.
 > - **Albums sections view mode** — The Albums tab has a third view mode (cycling List → Grid → Sections) that lists albums as compact rows organized by sort order, like a table of contents.
 > - **Local folder and path in photo details** — The Details sheet for a photo shows the device folder name and full file path when the photo is stored locally, including for cloud photos that also have a local copy.
