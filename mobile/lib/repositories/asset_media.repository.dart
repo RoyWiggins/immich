@@ -68,6 +68,22 @@ class AssetMediaRepository {
     }
   }
 
+  /// Returns the folder name and full file path for a local asset.
+  Future<({String? folder, String? path})> getLocalFileInfo(String id) async {
+    final entity = await AssetEntity.fromId(id);
+    if (entity == null) return (folder: null, path: null);
+    try {
+      final file = await entity.originFile;
+      return (
+        folder: entity.relativePath?.replaceAll(RegExp(r'/$'), ''),
+        path: file?.path,
+      );
+    } catch (e) {
+      _log.warning("Failed to get local file info for asset: $id. Error: $e");
+      return (folder: null, path: null);
+    }
+  }
+
   /// Deletes temporary files in parallel
   Future<void> _cleanupTempFiles(List<File> tempFiles) async {
     await Future.wait(

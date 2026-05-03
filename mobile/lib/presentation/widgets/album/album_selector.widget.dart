@@ -791,7 +791,7 @@ class _AlbumSections extends ConsumerWidget {
   }
 }
 
-class _AlbumSectionCard extends ConsumerWidget {
+class _AlbumSectionCard extends StatelessWidget {
   const _AlbumSectionCard({required this.album, required this.isOwner, required this.onAlbumSelected});
 
   final RemoteAlbum album;
@@ -799,98 +799,45 @@ class _AlbumSectionCard extends ConsumerWidget {
   final AlbumSelectorCallback onAlbumSelected;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final albumThumbnailAsset = ref.read(assetServiceProvider).getRemoteAsset(album.thumbnailAssetId ?? "");
-
-    return GestureDetector(
+  Widget build(BuildContext context) {
+    return InkWell(
       onTap: () => onAlbumSelected(album),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(16)),
-        child: Stack(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
           children: [
-            // Cover photo
-            SizedBox(
-              width: double.infinity,
-              height: 220,
-              child: FutureBuilder(
-                future: albumThumbnailAsset,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData && snapshot.data != null) {
-                    return Thumbnail.remote(
-                      remoteId: album.thumbnailAssetId!,
-                      thumbhash: snapshot.data!.thumbHash ?? "",
-                      fit: BoxFit.cover,
-                    );
-                  }
-                  return Container(
-                    color: context.colorScheme.surfaceContainerHighest,
-                    child: const Center(child: Icon(Icons.photo_album_rounded, size: 48, color: Colors.grey)),
-                  );
-                },
-              ),
-            ),
-            // Bottom gradient + text
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 32, 16, 14),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black54],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    album.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        album.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          shadows: [const Shadow(blurRadius: 4, color: Colors.black45)],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'items_count'.t(context: context, args: {'count': album.assetCount}),
-                      style: context.textTheme.bodySmall?.copyWith(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // Shared badge
-            if (!isOwner)
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  const SizedBox(height: 2),
+                  Row(
                     children: [
-                      const Icon(Icons.group, size: 14, color: Colors.white),
-                      const SizedBox(width: 4),
                       Text(
-                        album.ownerName,
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        'items_count'.t(context: context, args: {'count': album.assetCount}),
+                        style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurfaceVariant),
                       ),
+                      if (!isOwner) ...[
+                        const SizedBox(width: 8),
+                        Icon(Icons.group_outlined, size: 14, color: context.colorScheme.onSurfaceVariant),
+                        const SizedBox(width: 2),
+                        Text(
+                          album.ownerName,
+                          style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurfaceVariant),
+                        ),
+                      ],
                     ],
                   ),
-                ),
+                ],
               ),
+            ),
+            Icon(Icons.chevron_right, color: context.colorScheme.onSurfaceVariant),
           ],
         ),
       ),

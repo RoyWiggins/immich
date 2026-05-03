@@ -65,15 +65,46 @@ class TechnicalDetails extends ConsumerWidget {
 
     if (asset is LocalAsset) {
       final assetMediaRepository = ref.watch(assetMediaRepositoryProvider);
-      return FutureBuilder<String?>(
-        future: assetMediaRepository.getOriginalFilename(asset.id),
+      final localAsset = asset;
+      Future<({String filename, String? folder, String? path})> getInfo() async {
+        final filename = await assetMediaRepository.getOriginalFilename(localAsset.id);
+        final fileInfo = await assetMediaRepository.getLocalFileInfo(localAsset.id);
+        return (filename: filename ?? localAsset.name, folder: fileInfo.folder, path: fileInfo.path);
+      }
+
+      return FutureBuilder(
+        future: getInfo(),
         builder: (context, snapshot) {
-          return SheetTile(
-            title: snapshot.data ?? asset.name,
-            titleStyle: context.textTheme.labelLarge,
-            leading: icon,
-            subtitle: subtitle,
-            subtitleStyle: subtitleStyle,
+          final filename = snapshot.data?.filename ?? localAsset.name;
+          final folder = snapshot.data?.folder;
+          final filePath = snapshot.data?.path;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SheetTile(
+                title: filename,
+                titleStyle: context.textTheme.labelLarge,
+                leading: icon,
+                subtitle: subtitle,
+                subtitleStyle: subtitleStyle,
+              ),
+              if (folder != null) ...[
+                const SizedBox(height: 16),
+                SheetTile(
+                  title: folder,
+                  titleStyle: context.textTheme.labelLarge,
+                  leading: Icon(Icons.folder_outlined, size: 24, color: context.textTheme.labelLarge?.color),
+                ),
+              ],
+              if (filePath != null) ...[
+                const SizedBox(height: 16),
+                SheetTile(
+                  title: filePath,
+                  titleStyle: context.textTheme.labelLarge,
+                  leading: Icon(Icons.storage_outlined, size: 24, color: context.textTheme.labelLarge?.color),
+                ),
+              ],
+            ],
           );
         },
       );

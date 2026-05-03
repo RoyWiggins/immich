@@ -192,37 +192,39 @@ class _PlacesSection extends ConsumerWidget {
                 onSeeAll: () => context.pushRoute(DriftPlaceRoute(currentLocation: null)),
               ),
               SizedBox(
-                height: 110,
+                height: 114,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.zero,
                   itemCount: places.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 10),
                   itemBuilder: (context, index) {
                     final place = places[index];
-                    return GestureDetector(
-                      onTap: () => context.pushRoute(DriftPlaceDetailRoute(place: place.$1)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.all(Radius.circular(12)),
-                            child: SizedBox(
-                              width: 120,
-                              height: 80,
-                              child: Thumbnail.remote(remoteId: place.$2, thumbhash: "", fit: BoxFit.cover),
+                    return SizedBox(
+                      width: 120,
+                      child: InkWell(
+                        borderRadius: const BorderRadius.all(Radius.circular(12)),
+                        onTap: () => context.pushRoute(DriftPlaceDetailRoute(place: place.$1)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.all(Radius.circular(12)),
+                              child: SizedBox(
+                                width: 120,
+                                height: 80,
+                                child: Thumbnail.remote(remoteId: place.$2, thumbhash: "", fit: BoxFit.cover),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            width: 120,
-                            child: Text(
+                            const SizedBox(height: 4),
+                            Text(
                               place.$1,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: context.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },
