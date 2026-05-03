@@ -72,6 +72,7 @@ enum StoreKey<T> {
 
   autoPlayVideo<bool>._(139),
   albumGridView<bool>._(140),
+  albumViewMode<int>._(142),
 
   // Image viewer navigation settings
   tapToNavigate<bool>._(141),

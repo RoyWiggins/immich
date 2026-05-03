@@ -54,6 +54,7 @@ enum AppSettingsEnum<T> {
   useCellularForUploadPhotos<bool>(StoreKey.useWifiForUploadPhotos, null, false),
   readonlyModeEnabled<bool>(StoreKey.readonlyModeEnabled, "readonlyModeEnabled", false),
   albumGridView<bool>(StoreKey.albumGridView, "albumGridView", false),
+  albumViewMode<int>(StoreKey.albumViewMode, "albumViewMode", 0),
   backupRequireCharging<bool>(StoreKey.backupRequireCharging, null, false),
   backupTriggerDelay<int>(StoreKey.backupTriggerDelay, null, 30),
   cleanupKeepFavorites<bool>(StoreKey.cleanupKeepFavorites, null, true),

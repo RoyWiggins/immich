@@ -1,27 +1,25 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:immich_mobile/extensions/build_context_extensions.dart';
-import 'package:immich_mobile/presentation/widgets/action_buttons/base_action_button.widget.dart';
-import 'package:immich_mobile/presentation/widgets/action_buttons/unarchive_action_button.widget.dart';
-import 'package:immich_mobile/providers/asset_viewer/asset_viewer.provider.dart';
-import 'package:immich_mobile/presentation/widgets/album/album_selector.widget.dart';
-import 'package:immich_mobile/providers/infrastructure/album.provider.dart';
-import 'package:immich_mobile/providers/routes.provider.dart';
-import 'package:immich_mobile/widgets/common/immich_toast.dart';
-import 'package:immich_mobile/providers/user.provider.dart';
-
 import 'package:immich_mobile/domain/models/album/album.model.dart';
 import 'package:immich_mobile/domain/models/asset/base_asset.model.dart';
-
 import 'package:immich_mobile/constants/enums.dart';
+import 'package:immich_mobile/extensions/build_context_extensions.dart';
+import 'package:immich_mobile/extensions/translate_extensions.dart';
 import 'package:immich_mobile/presentation/widgets/action_buttons/archive_action_button.widget.dart';
-import 'package:immich_mobile/presentation/widgets/action_buttons/favorite_action_button.widget.dart';
+import 'package:immich_mobile/presentation/widgets/action_buttons/base_action_button.widget.dart';
 import 'package:immich_mobile/presentation/widgets/action_buttons/move_to_lock_folder_action_button.widget.dart';
-import 'package:immich_mobile/presentation/widgets/action_buttons/unfavorite_action_button.widget.dart';
+import 'package:immich_mobile/presentation/widgets/action_buttons/unarchive_action_button.widget.dart';
+import 'package:immich_mobile/presentation/widgets/album/album_selector.widget.dart';
 import 'package:immich_mobile/presentation/widgets/bottom_sheet/base_bottom_sheet.widget.dart';
+import 'package:immich_mobile/providers/asset_viewer/asset_viewer.provider.dart';
+import 'package:immich_mobile/providers/infrastructure/action.provider.dart';
+import 'package:immich_mobile/providers/infrastructure/album.provider.dart';
+import 'package:immich_mobile/providers/routes.provider.dart';
+import 'package:immich_mobile/providers/user.provider.dart';
+import 'package:immich_mobile/widgets/common/immich_toast.dart';
 
-enum AddToMenuItem { album, archive, unarchive, lockedFolder }
+enum AddToMenuItem { album, favorites, archive, unarchive, lockedFolder }
 
 class AddActionButton extends ConsumerStatefulWidget {
   const AddActionButton({super.key, this.originalTheme});
@@ -33,20 +31,35 @@ class AddActionButton extends ConsumerStatefulWidget {
 }
 
 class _AddActionButtonState extends ConsumerState<AddActionButton> {
-  void _handleMenuSelection(AddToMenuItem selected) {
+  Future<void> _handleMenuSelection(AddToMenuItem selected) async {
     switch (selected) {
       case AddToMenuItem.album:
         _openAlbumSelector();
-        break;
+      case AddToMenuItem.favorites:
+        await _toggleFavorite();
       case AddToMenuItem.archive:
         performArchiveAction(context, ref, source: ActionSource.viewer);
-        break;
       case AddToMenuItem.unarchive:
         performUnArchiveAction(context, ref, source: ActionSource.viewer);
-        break;
       case AddToMenuItem.lockedFolder:
         performMoveToLockFolderAction(context, ref, source: ActionSource.viewer);
-        break;
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final asset = ref.read(assetViewerProvider).currentAsset;
+    if (asset == null || asset is! RemoteAsset) return;
+
+    if (asset.isFavorite) {
+      final result = await ref.read(actionProvider.notifier).unFavorite(ActionSource.viewer);
+      if (result.success) {
+        ref.read(assetViewerProvider.notifier).setAsset(asset.copyWith(isFavorite: false));
+      }
+    } else {
+      final result = await ref.read(actionProvider.notifier).favorite(ActionSource.viewer);
+      if (result.success) {
+        ref.read(assetViewerProvider.notifier).setAsset(asset.copyWith(isFavorite: true));
+      }
     }
   }
 
@@ -59,26 +72,28 @@ class _AddActionButtonState extends ConsumerState<AddActionButton> {
     final isInLockedView = ref.watch(inLockedViewProvider);
     final isArchived = asset is RemoteAsset && asset.visibility == AssetVisibility.archive;
     final hasRemote = asset is RemoteAsset;
+    final isFavorite = asset is RemoteAsset && asset.isFavorite;
     final showArchive = isOwner && !isInLockedView && hasRemote && !isArchived;
     final showUnarchive = isOwner && !isInLockedView && hasRemote && isArchived;
-
-    final isFavorite = asset is RemoteAsset && asset.isFavorite;
 
     return [
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Text("add_to_bottom_bar".tr(), style: context.textTheme.labelMedium),
       ),
-      if (isFavorite)
-        const UnFavoriteActionButton(source: ActionSource.viewer, menuItem: true)
-      else
-        const FavoriteActionButton(source: ActionSource.viewer, menuItem: true),
       BaseActionButton(
         iconData: Icons.photo_album_outlined,
         label: "album".tr(),
         menuItem: true,
         onPressed: () => _handleMenuSelection(AddToMenuItem.album),
       ),
+      if (hasRemote && isOwner)
+        BaseActionButton(
+          iconData: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          label: isFavorite ? 'unfavorite'.t(context: context) : 'favorite'.t(context: context),
+          menuItem: true,
+          onPressed: () => _handleMenuSelection(AddToMenuItem.favorites),
+        ),
 
       if (isOwner) ...[
         const Divider(),

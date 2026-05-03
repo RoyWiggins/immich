@@ -42,8 +42,11 @@ class AlbumSelector extends ConsumerStatefulWidget {
   ConsumerState<AlbumSelector> createState() => _AlbumSelectorState();
 }
 
+// 0 = list, 1 = grid, 2 = sections
+enum _AlbumViewMode { list, grid, sections }
+
 class _AlbumSelectorState extends ConsumerState<AlbumSelector> {
-  bool isGrid = false;
+  _AlbumViewMode viewMode = _AlbumViewMode.list;
   final searchController = TextEditingController();
   final menuController = MenuController();
   final searchFocusNode = FocusNode();
@@ -61,7 +64,7 @@ class _AlbumSelectorState extends ConsumerState<AlbumSelector> {
       final appSettings = ref.read(appSettingsServiceProvider);
       final savedSortMode = appSettings.getSetting(AppSettingsEnum.selectedAlbumSortOrder);
       final savedIsReverse = appSettings.getSetting(AppSettingsEnum.selectedAlbumSortReverse);
-      final savedIsGrid = appSettings.getSetting(AppSettingsEnum.albumGridView);
+      final savedViewMode = appSettings.getSetting(AppSettingsEnum.albumViewMode);
 
       final albumSortMode = AlbumSortMode.values.firstWhere(
         (e) => e.storeIndex == savedSortMode,
@@ -70,7 +73,7 @@ class _AlbumSelectorState extends ConsumerState<AlbumSelector> {
 
       setState(() {
         sort = AlbumSort(mode: albumSortMode, isReverse: savedIsReverse);
-        isGrid = savedIsGrid;
+        viewMode = _AlbumViewMode.values[savedViewMode.clamp(0, _AlbumViewMode.values.length - 1)];
       });
 
       ref.read(remoteAlbumProvider.notifier).refresh();
@@ -99,10 +102,11 @@ class _AlbumSelectorState extends ConsumerState<AlbumSelector> {
   }
 
   void toggleViewMode() {
+    final next = _AlbumViewMode.values[(viewMode.index + 1) % _AlbumViewMode.values.length];
     setState(() {
-      isGrid = !isGrid;
+      viewMode = next;
     });
-    ref.read(appSettingsServiceProvider).setSetting(AppSettingsEnum.albumGridView, isGrid);
+    ref.read(appSettingsServiceProvider).setSetting(AppSettingsEnum.albumViewMode, next.index);
   }
 
   void changeFilter(QuickFilterMode mode) {
@@ -214,16 +218,18 @@ class _AlbumSelectorState extends ConsumerState<AlbumSelector> {
             searchController: searchController,
           ),
           _QuickSortAndViewMode(
-            isGrid: isGrid,
+            viewMode: viewMode,
             onToggleViewMode: toggleViewMode,
             onSortChanged: changeSort,
             controller: menuController,
             currentSortMode: sort.mode,
             currentIsReverse: sort.isReverse,
           ),
-          isGrid
-              ? _AlbumGrid(albums: shownAlbums, userId: userId, onAlbumSelected: widget.onAlbumSelected)
-              : _AlbumList(albums: shownAlbums, userId: userId, onAlbumSelected: widget.onAlbumSelected),
+          switch (viewMode) {
+            _AlbumViewMode.grid => _AlbumGrid(albums: shownAlbums, userId: userId, onAlbumSelected: widget.onAlbumSelected),
+            _AlbumViewMode.sections => _AlbumSections(albums: shownAlbums, userId: userId, onAlbumSelected: widget.onAlbumSelected),
+            _ => _AlbumList(albums: shownAlbums, userId: userId, onAlbumSelected: widget.onAlbumSelected),
+          },
         ],
       ),
     );
@@ -525,7 +531,7 @@ class _QuickFilterButton extends StatelessWidget {
 
 class _QuickSortAndViewMode extends StatelessWidget {
   const _QuickSortAndViewMode({
-    required this.isGrid,
+    required this.viewMode,
     required this.onToggleViewMode,
     required this.onSortChanged,
     required this.currentSortMode,
@@ -533,12 +539,18 @@ class _QuickSortAndViewMode extends StatelessWidget {
     this.controller,
   });
 
-  final bool isGrid;
+  final _AlbumViewMode viewMode;
   final VoidCallback onToggleViewMode;
   final MenuController? controller;
   final Future<void> Function(AlbumSort) onSortChanged;
   final AlbumSortMode currentSortMode;
   final bool currentIsReverse;
+
+  IconData get _nextModeIcon => switch (viewMode) {
+        _AlbumViewMode.list => Icons.grid_view_outlined,
+        _AlbumViewMode.grid => Icons.view_agenda_outlined,
+        _AlbumViewMode.sections => Icons.view_list_outlined,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -555,11 +567,7 @@ class _QuickSortAndViewMode extends StatelessWidget {
               initialIsReverse: currentIsReverse,
             ),
             IconButton(
-              icon: Icon(
-                isGrid ? Icons.view_list_outlined : Icons.grid_view_outlined,
-                size: 24,
-                color: context.colorScheme.onSurface,
-              ),
+              icon: Icon(_nextModeIcon, size: 24, color: context.colorScheme.onSurface),
               onPressed: onToggleViewMode,
             ),
           ],
@@ -742,6 +750,147 @@ class _GridAlbumCard extends ConsumerWidget {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AlbumSections extends ConsumerWidget {
+  const _AlbumSections({required this.albums, required this.userId, required this.onAlbumSelected});
+
+  final List<RemoteAlbum> albums;
+  final String? userId;
+  final AlbumSelectorCallback onAlbumSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (albums.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(padding: const EdgeInsets.all(20.0), child: Text('album_search_not_found'.tr())),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 64),
+      sliver: SliverList.builder(
+        itemCount: albums.length,
+        itemBuilder: (context, index) {
+          final album = albums[index];
+          final isOwner = album.ownerId == userId;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _AlbumSectionCard(album: album, isOwner: isOwner, onAlbumSelected: onAlbumSelected),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AlbumSectionCard extends ConsumerWidget {
+  const _AlbumSectionCard({required this.album, required this.isOwner, required this.onAlbumSelected});
+
+  final RemoteAlbum album;
+  final bool isOwner;
+  final AlbumSelectorCallback onAlbumSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final albumThumbnailAsset = ref.read(assetServiceProvider).getRemoteAsset(album.thumbnailAssetId ?? "");
+
+    return GestureDetector(
+      onTap: () => onAlbumSelected(album),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.all(Radius.circular(16)),
+        child: Stack(
+          children: [
+            // Cover photo
+            SizedBox(
+              width: double.infinity,
+              height: 220,
+              child: FutureBuilder(
+                future: albumThumbnailAsset,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data != null) {
+                    return Thumbnail.remote(
+                      remoteId: album.thumbnailAssetId!,
+                      thumbhash: snapshot.data!.thumbHash ?? "",
+                      fit: BoxFit.cover,
+                    );
+                  }
+                  return Container(
+                    color: context.colorScheme.surfaceContainerHighest,
+                    child: const Center(child: Icon(Icons.photo_album_rounded, size: 48, color: Colors.grey)),
+                  );
+                },
+              ),
+            ),
+            // Bottom gradient + text
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 32, 16, 14),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black54],
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        album.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          shadows: [const Shadow(blurRadius: 4, color: Colors.black45)],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'items_count'.t(context: context, args: {'count': album.assetCount}),
+                      style: context.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Shared badge
+            if (!isOwner)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.group, size: 14, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(
+                        album.ownerName,
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
