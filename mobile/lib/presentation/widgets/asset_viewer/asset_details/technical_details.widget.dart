@@ -78,33 +78,41 @@ class TechnicalDetails extends ConsumerWidget {
           final filename = snapshot.data?.filename ?? localAsset.name;
           final folder = snapshot.data?.folder;
           final filePath = snapshot.data?.path;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SheetTile(
-                title: filename,
-                titleStyle: context.textTheme.labelLarge,
-                leading: icon,
-                subtitle: subtitle,
-                subtitleStyle: subtitleStyle,
-              ),
-              if (folder != null) ...[
-                const SizedBox(height: 16),
-                SheetTile(
-                  title: folder,
-                  titleStyle: context.textTheme.labelLarge,
-                  leading: Icon(Icons.folder_outlined, size: 24, color: context.textTheme.labelLarge?.color),
-                ),
-              ],
-              if (filePath != null) ...[
-                const SizedBox(height: 16),
-                SheetTile(
-                  title: filePath,
-                  titleStyle: context.textTheme.labelLarge,
-                  leading: Icon(Icons.storage_outlined, size: 24, color: context.textTheme.labelLarge?.color),
-                ),
-              ],
-            ],
+          return _LocalFileTiles(
+            filenameTile: SheetTile(
+              title: filename,
+              titleStyle: context.textTheme.labelLarge,
+              leading: icon,
+              subtitle: subtitle,
+              subtitleStyle: subtitleStyle,
+            ),
+            folder: folder,
+            filePath: filePath,
+          );
+        },
+      );
+    }
+
+    // Remote asset that also exists locally: show folder + path from the local copy
+    final localId = asset.localId;
+    if (localId != null) {
+      final assetMediaRepository = ref.watch(assetMediaRepositoryProvider);
+      Future<({String? folder, String? path})> getLocalInfo() =>
+          assetMediaRepository.getLocalFileInfo(localId);
+
+      return FutureBuilder(
+        future: getLocalInfo(),
+        builder: (context, snapshot) {
+          return _LocalFileTiles(
+            filenameTile: SheetTile(
+              title: asset.name,
+              titleStyle: context.textTheme.labelLarge,
+              leading: icon,
+              subtitle: subtitle,
+              subtitleStyle: subtitleStyle,
+            ),
+            folder: snapshot.data?.folder,
+            filePath: snapshot.data?.path,
           );
         },
       );
@@ -155,5 +163,47 @@ class TechnicalDetails extends ConsumerWidget {
     final fNumber = exifInfo.fNumber.isNotEmpty ? 'ƒ/${exifInfo.fNumber}' : null;
     final focalLength = exifInfo.focalLength.isNotEmpty ? '${exifInfo.focalLength} mm' : null;
     return [fNumber, focalLength].where((spec) => spec != null && spec.isNotEmpty).join(_kSeparator);
+  }
+}
+
+class _LocalFileTiles extends StatelessWidget {
+  const _LocalFileTiles({required this.filenameTile, this.folder, this.filePath});
+
+  final Widget filenameTile;
+  final String? folder;
+  final String? filePath;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        filenameTile,
+        if (folder != null) ...[
+          const SizedBox(height: 16),
+          SheetTile(
+            title: folder!,
+            titleStyle: Theme.of(context).textTheme.labelLarge,
+            leading: Icon(
+              Icons.folder_outlined,
+              size: 24,
+              color: Theme.of(context).textTheme.labelLarge?.color,
+            ),
+          ),
+        ],
+        if (filePath != null) ...[
+          const SizedBox(height: 16),
+          SheetTile(
+            title: filePath!,
+            titleStyle: Theme.of(context).textTheme.labelLarge,
+            leading: Icon(
+              Icons.storage_outlined,
+              size: 24,
+              color: Theme.of(context).textTheme.labelLarge?.color,
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }
