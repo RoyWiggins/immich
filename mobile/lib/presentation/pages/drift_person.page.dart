@@ -2,8 +2,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:immich_mobile/domain/models/person.model.dart';
-import 'package:immich_mobile/extensions/build_context_extensions.dart';
-import 'package:immich_mobile/presentation/widgets/people/person_option_sheet.widget.dart';
+import 'package:immich_mobile/presentation/widgets/people/person_action_bottom_sheet.widget.dart';
 import 'package:immich_mobile/presentation/widgets/timeline/timeline.widget.dart';
 import 'package:immich_mobile/providers/infrastructure/timeline.provider.dart';
 import 'package:immich_mobile/providers/user.provider.dart';
@@ -50,22 +49,14 @@ class _DriftPersonPageState extends ConsumerState<DriftPersonPage> {
   }
 
   void showOptionSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.colorScheme.surface,
-      isScrollControlled: false,
-      builder: (context) {
-        return PersonOptionSheet(
-          onEditName: () async {
-            await handleEditName(context);
-            ContextHelper(context).pop();
-          },
-          onEditBirthday: () async {
-            await handleEditBirthday(context);
-            ContextHelper(context).pop();
-          },
-          birthdayExists: _person.birthDate != null,
-        );
+    showPersonActionBottomSheet(
+      context,
+      _person,
+      onNameChanged: (newName) {
+        if (mounted) setState(() => _person = _person.copyWith(name: newName));
+      },
+      onBirthdayChanged: (birthday) {
+        if (mounted) setState(() => _person = _person.copyWith(birthDate: birthday));
       },
     );
   }

@@ -29,6 +29,11 @@ class PersonApiRepository extends ApiRepository {
     return _toPerson(response);
   }
 
+  Future<List<BulkIdResponseDto>> mergePerson(String targetId, List<String> sourceIds) async {
+    final dto = MergePersonDto(ids: sourceIds);
+    return await checkNull(_api.mergePerson(targetId, dto)) ?? [];
+  }
+
   static PersonDto _toPerson(PersonResponseDto dto) => PersonDto(
     birthDate: dto.birthDate,
     id: dto.id,

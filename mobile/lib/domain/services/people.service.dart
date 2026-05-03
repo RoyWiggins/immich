@@ -41,4 +41,17 @@ class DriftPeopleService {
     await _personApiRepository.update(personId, isHidden: hidden);
     await _repository.updateHidden(personId, hidden);
   }
+
+  /// Merges [sourceIds] into [targetId]. If [winningName] is provided and
+  /// differs from the target's current name, updates the name after merging.
+  Future<void> mergePeople(String targetId, List<String> sourceIds, {String? winningName}) async {
+    await _personApiRepository.mergePerson(targetId, sourceIds);
+    if (winningName != null && winningName.isNotEmpty) {
+      await _personApiRepository.update(targetId, name: winningName);
+      await _repository.updateName(targetId, winningName);
+    }
+    for (final id in sourceIds) {
+      await _repository.updateHidden(id, true);
+    }
+  }
 }
