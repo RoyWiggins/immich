@@ -92,6 +92,8 @@ class RemoteAssetRepository extends DriftDatabaseRepository {
       "asset",
     );
 
+    final countExpr = _db.remoteExifEntity.assetId.count();
+
     final query =
         asset.selectOnly().join([
             innerJoin(
@@ -100,14 +102,14 @@ class RemoteAssetRepository extends DriftDatabaseRepository {
               useColumns: false,
             ),
           ])
-          ..addColumns([_db.remoteExifEntity.city, _db.remoteExifEntity.assetId])
+          ..addColumns([_db.remoteExifEntity.city, _db.remoteExifEntity.assetId, countExpr])
           ..where(
             _db.remoteExifEntity.city.isNotNull() &
                 asset.ref(_db.remoteAssetEntity.deletedAt).isNull() &
                 asset.ref(_db.remoteAssetEntity.visibility).equals(AssetVisibility.timeline.index),
           )
           ..groupBy([_db.remoteExifEntity.city])
-          ..orderBy([OrderingTerm.asc(_db.remoteExifEntity.city)]);
+          ..orderBy([OrderingTerm.desc(countExpr)]);
 
     return query.map((row) {
       final assetId = row.read(_db.remoteExifEntity.assetId);

@@ -140,6 +140,11 @@ class _PlaceList extends ConsumerWidget {
           }).toList();
         }
 
+        // Limit to twice the number of tiles that fit on screen without scrolling.
+        const double tileHeight = 96.0;
+        final limit = (2 * MediaQuery.of(context).size.height / tileHeight).ceil();
+        places = places.take(limit).toList();
+
         return SliverList.builder(
           itemCount: places.length,
           itemBuilder: (context, index) {

@@ -7,8 +7,10 @@ import 'package:immich_mobile/extensions/asyncvalue_extensions.dart';
 import 'package:immich_mobile/extensions/build_context_extensions.dart';
 import 'package:immich_mobile/extensions/translate_extensions.dart';
 import 'package:immich_mobile/presentation/widgets/images/local_album_thumbnail.widget.dart';
+import 'package:immich_mobile/presentation/widgets/images/thumbnail.widget.dart';
 import 'package:immich_mobile/presentation/widgets/people/partner_user_avatar.widget.dart';
 import 'package:immich_mobile/providers/infrastructure/album.provider.dart';
+import 'package:immich_mobile/providers/infrastructure/asset.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/partner.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/people.provider.dart';
 import 'package:immich_mobile/providers/server_info.provider.dart';
@@ -16,8 +18,6 @@ import 'package:immich_mobile/presentation/widgets/images/remote_image_provider.
 import 'package:immich_mobile/routing/router.dart';
 import 'package:immich_mobile/utils/image_url_builder.dart';
 import 'package:immich_mobile/widgets/common/immich_sliver_app_bar.dart';
-import 'package:immich_mobile/widgets/map/map_thumbnail.dart';
-import 'package:maplibre_gl/maplibre_gl.dart';
 
 @RoutePage()
 class DriftLibraryPage extends ConsumerWidget {
@@ -179,7 +179,16 @@ class _PeopleCollectionCard extends ConsumerWidget {
                       mainAxisSpacing: 8,
                       physics: const NeverScrollableScrollPhysics(),
                       children: people.take(4).map((person) {
-                        return CircleAvatar(backgroundImage: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)));
+                        return GestureDetector(
+                          onTap: () => context.pushRoute(DriftPersonRoute(person: person)),
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.all(Radius.circular(12)),
+                            child: Image(
+                              image: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        );
                       }).toList(),
                     );
                   },
@@ -203,11 +212,13 @@ class _PeopleCollectionCard extends ConsumerWidget {
   }
 }
 
-class _PlacesCollectionCard extends StatelessWidget {
+class _PlacesCollectionCard extends ConsumerWidget {
   const _PlacesCollectionCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final places = ref.watch(placesProvider);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isTablet = constraints.maxWidth > 600;
@@ -219,21 +230,35 @@ class _PlacesCollectionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
+              Container(
                 height: size,
                 width: size,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(20)),
-                    color: context.colorScheme.secondaryContainer.withAlpha(100),
-                  ),
-                  child: IgnorePointer(
-                    child: MapThumbnail(
-                      zoom: 8,
-                      centre: const LatLng(21.44950, -157.91959),
-                      showAttribution: false,
-                      themeMode: context.isDarkTheme ? ThemeMode.dark : ThemeMode.light,
-                    ),
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.all(Radius.circular(20)),
+                  color: context.colorScheme.secondaryContainer.withAlpha(100),
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(20)),
+                  child: places.widgetWhen(
+                    onLoading: () => const Center(child: CircularProgressIndicator()),
+                    onData: (places) {
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        padding: const EdgeInsets.all(12),
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: places.take(4).map((place) {
+                          return GestureDetector(
+                            onTap: () => context.pushRoute(DriftPlaceDetailRoute(place: place.$1)),
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.all(Radius.circular(10)),
+                              child: Thumbnail.remote(remoteId: place.$2, fit: BoxFit.cover, thumbhash: ""),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
                   ),
                 ),
               ),
