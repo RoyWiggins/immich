@@ -1,19 +1,23 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:immich_mobile/domain/models/album/local_album.model.dart';
 import 'package:immich_mobile/domain/models/user.model.dart';
+import 'package:immich_mobile/domain/services/timeline.service.dart';
 import 'package:immich_mobile/extensions/asyncvalue_extensions.dart';
 import 'package:immich_mobile/extensions/build_context_extensions.dart';
 import 'package:immich_mobile/extensions/translate_extensions.dart';
+import 'package:immich_mobile/presentation/widgets/asset_viewer/asset_viewer.page.dart';
 import 'package:immich_mobile/presentation/widgets/images/local_album_thumbnail.widget.dart';
+import 'package:immich_mobile/presentation/widgets/images/remote_image_provider.dart';
 import 'package:immich_mobile/presentation/widgets/images/thumbnail.widget.dart';
 import 'package:immich_mobile/presentation/widgets/people/partner_user_avatar.widget.dart';
 import 'package:immich_mobile/providers/infrastructure/album.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/asset.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/partner.provider.dart';
 import 'package:immich_mobile/providers/infrastructure/people.provider.dart';
+import 'package:immich_mobile/providers/infrastructure/timeline.provider.dart';
 import 'package:immich_mobile/providers/server_info.provider.dart';
-import 'package:immich_mobile/presentation/widgets/images/remote_image_provider.dart';
 import 'package:immich_mobile/routing/router.dart';
 import 'package:immich_mobile/utils/image_url_builder.dart';
 import 'package:immich_mobile/widgets/common/immich_sliver_app_bar.dart';
@@ -266,7 +270,7 @@ class _OnDeviceSection extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     final album = albums[index];
                     return GestureDetector(
-                      onTap: () => context.pushRoute(const DriftLocalAlbumsRoute()),
+                      onTap: () => context.pushRoute(LocalTimelineRoute(album: album)),
                       child: ClipRRect(
                         borderRadius: const BorderRadius.all(Radius.circular(12)),
                         child: SizedBox(
@@ -304,6 +308,8 @@ class _FavoritesSection extends ConsumerWidget {
       data: (assets) {
         if (assets.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
 
+        final timelineService = ref.read(timelineFactoryProvider).fromAssets(assets, TimelineOrigin.favorite);
+
         return _SectionCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,7 +327,12 @@ class _FavoritesSection extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     final asset = assets[index];
                     return GestureDetector(
-                      onTap: () => context.pushRoute(const DriftFavoriteRoute()),
+                      onTap: () {
+                        AssetViewer.setAsset(ref, asset);
+                        context.pushRoute(
+                          AssetViewerRoute(initialIndex: index, timelineService: timelineService),
+                        );
+                      },
                       child: ClipRRect(
                         borderRadius: const BorderRadius.all(Radius.circular(12)),
                         child: SizedBox(
