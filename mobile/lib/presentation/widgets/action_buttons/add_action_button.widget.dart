@@ -16,7 +16,9 @@ import 'package:immich_mobile/domain/models/asset/base_asset.model.dart';
 
 import 'package:immich_mobile/constants/enums.dart';
 import 'package:immich_mobile/presentation/widgets/action_buttons/archive_action_button.widget.dart';
+import 'package:immich_mobile/presentation/widgets/action_buttons/favorite_action_button.widget.dart';
 import 'package:immich_mobile/presentation/widgets/action_buttons/move_to_lock_folder_action_button.widget.dart';
+import 'package:immich_mobile/presentation/widgets/action_buttons/unfavorite_action_button.widget.dart';
 import 'package:immich_mobile/presentation/widgets/bottom_sheet/base_bottom_sheet.widget.dart';
 
 enum AddToMenuItem { album, archive, unarchive, lockedFolder }
@@ -60,11 +62,17 @@ class _AddActionButtonState extends ConsumerState<AddActionButton> {
     final showArchive = isOwner && !isInLockedView && hasRemote && !isArchived;
     final showUnarchive = isOwner && !isInLockedView && hasRemote && isArchived;
 
+    final isFavorite = asset is RemoteAsset && asset.isFavorite;
+
     return [
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Text("add_to_bottom_bar".tr(), style: context.textTheme.labelMedium),
       ),
+      if (isFavorite)
+        const UnFavoriteActionButton(source: ActionSource.viewer, menuItem: true)
+      else
+        const FavoriteActionButton(source: ActionSource.viewer, menuItem: true),
       BaseActionButton(
         iconData: Icons.photo_album_outlined,
         label: "album".tr(),
