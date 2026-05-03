@@ -136,11 +136,21 @@ class _PeopleSection extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(64 * 0.35),
                               ),
                               clipBehavior: Clip.antiAlias,
+                              color: context.colorScheme.surfaceContainerHighest,
                               child: Image(
                                 image: RemoteImageProvider(url: getFaceThumbnailUrl(person.id)),
                                 width: 64,
                                 height: 64,
                                 fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => SizedBox(
+                                  width: 64,
+                                  height: 64,
+                                  child: Icon(
+                                    Icons.person_rounded,
+                                    size: 36,
+                                    color: context.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 4),
