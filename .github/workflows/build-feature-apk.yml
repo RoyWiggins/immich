@@ -69,22 +69,15 @@ jobs:
         working-directory: ./mobile
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: Generate self-signed keystore
-        run: |
-          keytool -genkeypair -v \
-            -keystore mobile/android/key.jks \
-            -alias immich \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Immich CI, OU=CI, O=Immich, L=Unknown, S=Unknown, C=US"
-
       - name: Build release APK (arm64)
         working-directory: ./mobile
         env:
           ALIAS: immich
           ANDROID_KEY_PASSWORD: android
           ANDROID_STORE_PASSWORD: android
-        run: flutter build apk --release --split-per-abi --target-platform android-arm64
+        run: |
+          cp android/dev-release.jks android/key.jks
+          flutter build apk --release --split-per-abi --target-platform android-arm64
 
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
