@@ -153,6 +153,7 @@ class ActionNotifier extends Notifier<void> {
     final ids = _getOwnedRemoteIdsForSource(source);
     try {
       await _service.favorite(ids);
+      ref.invalidate(recentFavoritesProvider);
       return ActionResult(count: ids.length, success: true);
     } catch (error, stack) {
       _logger.severe('Failed to favorite assets', error, stack);
@@ -164,6 +165,7 @@ class ActionNotifier extends Notifier<void> {
     final ids = _getOwnedRemoteIdsForSource(source);
     try {
       await _service.unFavorite(ids);
+      ref.invalidate(recentFavoritesProvider);
       return ActionResult(count: ids.length, success: true);
     } catch (error, stack) {
       _logger.severe('Failed to unfavorite assets', error, stack);
