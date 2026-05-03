@@ -278,7 +278,7 @@ class DriftRemoteAlbumRepository extends DriftDatabaseRepository {
       innerJoin(_db.remoteAssetEntity, _db.remoteAssetEntity.id.equalsExp(_db.remoteAlbumAssetEntity.assetId)),
     ])
       ..where(_db.remoteAlbumAssetEntity.albumId.equals(albumId))
-      ..orderBy([OrderingTerm.desc(_db.remoteAssetEntity.fileCreatedAt)])
+      ..orderBy([OrderingTerm.desc(_db.remoteAssetEntity.createdAt)])
       ..limit(limit);
 
     return query.map((row) => row.readTable(_db.remoteAssetEntity).toDto()).get();
